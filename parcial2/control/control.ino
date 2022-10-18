@@ -48,7 +48,7 @@ void loop()
     Serial.println(control);
     Serial.print("SetPoint:");
     Serial.println(refference);
-    // Wait until 10 ms has passed
+    // Wait until 10 ms have passed
     do {
         currentMillis = millis();
     } while (currentMillis - prevMillis <= 10);
