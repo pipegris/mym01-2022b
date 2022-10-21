@@ -1,4 +1,19 @@
-#include "fixops.h"
+//////////////////////////////////////////////////////
+// Fixed point operations
+#define FADD(a,b) ( (a) + (b) )
+#define FSUB(a,b) ( (a) - (b) )
+#define FMUL(a,b,q) ( ((a) * (b)) >> (q) )
+#define FDIV(a,b,q) ( ((a) << (q)) / (b) )
+
+#define TOFIX(t,d,q) ( (t) ((d) * (double) (1ULL << (q))) )
+#define FROMFIX(d,q) ((d) / (double) (1ULL << (q)))
+
+typedef int32_t fix32;
+typedef int16_t fix16;
+
+#define QM 7
+
+////////////////////////////////////////////////////////
 
 #define DEFAULT_BAUD_RATE 115200
 #define SAMPLING_TIME 10
@@ -6,7 +21,7 @@
 // Variable init
 // From the Matlab Controller auto tuning: a * (1 + b*s) / s 
 float output;
-float refference = 1.4;
+float refference = 0.5;
 float prevError = 0, error;
 float prevControl = 0, control;
 unsigned long currentMillis, prevMillis = 0;
@@ -42,11 +57,18 @@ void loop()
 
     // Streaming results via serial
     Serial.print("Output:");
-    Serial.println(output);
+    Serial.print(output);
+    Serial.print(" ");
     Serial.print("Control:");
-    Serial.println(control);
+    Serial.print(control);
+    Serial.print(" ");
     Serial.print("SetPoint:");
     Serial.println(refference);
+
+    if (Serial.available()) {
+        refference = Serial.parseFloat();
+    }
+
     // Wait until 10 ms has passed
     do {
         currentMillis = millis();
