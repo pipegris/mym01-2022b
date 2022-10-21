@@ -1,14 +1,12 @@
+#include "fixops.h"
+
 #define DEFAULT_BAUD_RATE 115200
+#define SAMPLING_TIME 10
 
 // Variable init
 // From the Matlab Controller auto tuning: a * (1 + b*s) / s 
-// float a = 2.2738*100000; // 2.2734e+05
-// float b = 12/100000; // 12e-05
-// float T = 10/1000; // 10 ms
-float aT_ab = 2246.5144; // a*T - a*b;
-float ab = 27.2856; // a*b;
 float output;
-float refference = 1.5;
+float refference = 1.4;
 float prevError = 0, error;
 float prevControl = 0, control;
 unsigned long currentMillis, prevMillis = 0;
@@ -16,6 +14,7 @@ unsigned long currentMillis, prevMillis = 0;
 // Function signatures
 float readFloatADC(int);
 float calculateError(float, float);
+float calculateControl(float, float, float);
 
 void setup()
 {
@@ -30,13 +29,13 @@ void loop()
     output = readFloatADC(A5);
     error = calculateError(refference, output);
     
-    control = aT_ab * prevError + ab * error + prevControl;
+    control = calculateControl(error, prevError, prevControl);
 
     // Limit control signal to 0-5V
     control = control > 5 ? 5 : control;
     control = control < 0 ? 0 : control;
 
-    analogWrite(5, control * 255 / 5);
+    analogWrite(5, control * 255/5);
     
     prevError = error;
     prevControl = control;
@@ -48,10 +47,10 @@ void loop()
     Serial.println(control);
     Serial.print("SetPoint:");
     Serial.println(refference);
-    // Wait until 10 ms have passed
+    // Wait until 10 ms has passed
     do {
         currentMillis = millis();
-    } while (currentMillis - prevMillis <= 10);
+    } while (currentMillis - prevMillis <= SAMPLING_TIME);
 }
 
 float readFloatADC(int port)
@@ -61,5 +60,30 @@ float readFloatADC(int port)
 }
 
 float calculateError(float refference, float output) {
-    return refference - output;
+    fix16 fRefference = TOFIX(fix16, refference, QM);
+    fix16 fOutput = TOFIX(fix16, output, QM);
+    
+    //return refference - output;
+    fix16 result = FSUB(fRefference,fOutput);
+    return (float) FROMFIX(result, QM);
+}
+
+float calculateControl(float error, float prevError, float prevControl) {
+    fix16 fError = TOFIX(fix16, error, QM);
+    fix16 fErrorConstant = TOFIX(fix16, 27.39, QM);
+    fix16 fPrevError = TOFIX(fix16, prevError, QM);
+    fix16 fPrevErrorConstant = TOFIX(fix16, 27.17, QM);
+    fix16 fPrevControl = TOFIX(fix16, prevControl, QM);
+
+
+    //return 27.39 * error - 27.17 * prevError + prevControl;
+    fix16 result = 
+    FADD(
+        FSUB(
+            FMUL(fErrorConstant,fError,QM),
+            FMUL(fPrevErrorConstant,fPrevError,QM)
+        ), 
+        fPrevControl
+    );
+    return (float) FROMFIX(result, QM);
 }
