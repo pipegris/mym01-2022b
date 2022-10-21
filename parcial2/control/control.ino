@@ -65,6 +65,7 @@ void loop()
     Serial.print("SetPoint:");
     Serial.println(refference);
 
+    // Updates refference via serial
     if (Serial.available()) {
         refference = Serial.parseFloat();
     }
@@ -96,7 +97,6 @@ float calculateControl(float error, float prevError, float prevControl) {
     fix16 fPrevError = TOFIX(fix16, prevError, QM);
     fix16 fPrevErrorConstant = TOFIX(fix16, 27.17, QM);
     fix16 fPrevControl = TOFIX(fix16, prevControl, QM);
-
 
     //return 27.39 * error - 27.17 * prevError + prevControl;
     fix16 result = 
